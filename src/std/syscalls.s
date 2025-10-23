@@ -31,6 +31,12 @@ syscall_write:
 	jmp fct_to_syscall
 	ret
 
+/*.global syscall_fsync
+syscall_fsync:
+	mov	rax, 0x0000004a
+	jmp fct_to_syscall
+	ret*/
+
 
 
 /* exit */

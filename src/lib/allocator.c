@@ -57,7 +57,7 @@
 // ---------------- PAGE SCALE ----------------
 
 //syscalls
-extern int syscall_mmap(
+extern void* syscall_mmap(
 	void* adr,
 	ulng  len,
 	ulng  prot,
@@ -65,18 +65,18 @@ extern int syscall_mmap(
 	ulng  fd,
 	ulng  ofs
 );
-extern int syscall_munmap(
-	void* adr,
-	ulng  len
-);
-extern int syscall_exit(ulng err);
+extern int  syscall_munmap(void* adr, ulng len);
+extern void syscall_write(uint fd, char* c, uint len);
+extern void syscall_exit(ulng err);
+
+
 
 //add - remove
 void* newMap(ulng len) {
 
 	//allocate new map
 	ulng* p = syscall_mmap(
-		(0(void*)),                //adr
+		null,                //adr
 		sizeof(ulng) + len,  //len
 		MM__PROT_READ   | MM__PROT_WRITE,    //prot
 		MM__MAP_PRIVATE | MM__MAP_ANONYMOUS, //flags
@@ -86,23 +86,23 @@ void* newMap(ulng len) {
 
 	//err
 	if(p == MM__MAP_FAILED){
-		write(0, "[ ERROR ] > Unable to allocate more memory for process.", 59);
+		syscall_write(0, "[ ERROR ] > Unable to allocate more memory for process.", 59);
 		syscall_exit(43);
 	}
 
 	//keep track of map len
 	p[0] = len;
-	return p;
+	return p+1;
 }
 
 void freeMap(void* adr) {
 
 	//retrieve map len
-	ulng len = adr(ulng*)[-1];
+	ulng len = ((ulng*)adr)[-1];
 
 	//free map
 	if(syscall_munmap(adr, len) == -1){
-		write(0, "[ ERROR ] > Unable to de-allocate memory from process.", 54);
+		syscall_write(0, "[ ERROR ] > Unable to de-allocate memory from process.", 54);
 		syscall_exit(54);
 	}
 }

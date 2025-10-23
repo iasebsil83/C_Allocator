@@ -21,7 +21,7 @@ typedef unsigned long long ulng;
 typedef void* ref;
 
 //null ref
-//#define null (0(ref))
+#define null ((ref)0)
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< tmp
 //static uint a_len = 0;
@@ -63,7 +63,7 @@ typedef void* ref;
 #define MM__MAP_FILE            0x00000000
 
 //err
-#define MM__MAP_FAILED         0xffffffff //<=> -1
+#define MM__MAP_FAILED ((void*)0xffffffff) //<=> -1
 
 //page add - remove
 void* newMap(ulng len);
