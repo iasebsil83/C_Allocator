@@ -1,0 +1,24 @@
+#!/bin/bash
+
+
+
+# -------- DECLARATIONS --------
+
+#exit on error
+set -e
+
+#current execution directory
+CXD=$(dirname $(realpath $0))
+pCXD=$(dirname $CXD)
+
+
+
+
+
+
+# -------- EXECUTION --------
+
+#remove temporary generated files
+#echo "Cleaning temporary files..."
+rm --recursive --force $pCXD/out/tmp
+#echo "Cleaning done."

@@ -1,0 +1,6 @@
+To check the validity of syscall args on a specified system, the easiest way is to look at the corresponding file:
+
+	/sys/kernel/debug/tracing/events/syscalls/sys_enter_#SYSCALL#/format
+
+(replacing #SYSCALL# by the name of the syscall of course)
+You must be root to access to this "file".

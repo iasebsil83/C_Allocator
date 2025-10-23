@@ -1,0 +1,144 @@
+#!/bin/bash
+
+
+
+
+# -------- DEFINITIONS --------
+
+#current executable directory
+CXD=$(dirname $(readlink -f $0))
+pCXD=$(dirname $CXD)
+
+#C compiler
+export CC=gcc
+
+#tmp dir
+TMP=$pCXD/out/tmp
+
+
+
+
+
+
+# -------- PREPARATIONS --------
+
+#clean
+$CXD/clean
+
+#tmp dir
+[[ ! -d $TMP ]] && mkdir --parents $TMP
+
+
+
+
+
+
+# -------- SHORTER CMD --------
+
+#compile from C to obj ($1:output file name, $2:C file)
+function c_to_obj() {
+	output=$1
+	srcC=$2
+
+	#cc
+	cmd="$CC -std=c99 -pedantic       \\"$'\n'
+	cmd+="-s -Os -no-pie              \\"$'\n'
+	cmd+="-nostdlib                   \\"$'\n'
+	cmd+="-ffreestanding              \\"$'\n'
+	cmd+="-fno-stack-protector        \\"$'\n'
+	cmd+="-fdata-sections             \\"$'\n'
+	cmd+="-fno-unwind-tables          \\"$'\n'
+	cmd+="-fno-asynchronous-unwind-tables \\"$'\n'
+	cmd+="-ffunction-sections         \\"$'\n'
+	cmd+="-Wl,-n                      \\"$'\n'
+	cmd+="-Wl,--gc-sections           \\"$'\n'
+	cmd+="-Wl,--build-id=none         \\"$'\n'
+	cmd+="-c -fPIC                    \\"$'\n'
+	cmd+="    $srcC && \\"$'\n'
+	cmd+="mv $(basename ${srcC%%.*}.o) $output && \\"$'\n'
+	cmd+="strip -R .comment $output"
+	$cmd
+}
+
+
+
+#compile from obj to shared obj ELF  ($1:output file name, $2:obj file, [$3:additionnal asm file])
+function obj_to_soELF() {
+	output=$1
+	srcObj=$2
+	srcAsm=$3
+
+	#cc
+	$CC -std=c99 -pedantic     \
+		-s -Os -no-pie         \
+		-nostdlib              \
+		-ffreestanding         \
+		-fno-stack-protector   \
+		-fdata-sections        \
+		-fno-unwind-tables     \
+		-fno-asynchronous-unwind-tables \
+		-ffunction-sections    \
+		-Wl,-n                 \
+		-Wl,--gc-sections      \
+		-Wl,--build-id=none    \
+		-shared                \
+		$srcObj                \
+		$srcAsm                \
+		-o $output          && \
+	strip -R .comment $output
+
+	#also add "lib"...".so" alternative
+	ln -s $output $(dirname $output)/lib$(basename ${output%%.*}).so
+}
+
+
+
+#compile from obj to executable ELF  ($1:output file name, $2:obj file, $3:so file, [$4:additionnal asm file])
+function obj_to_exeELF() {
+	output=$1
+	srcObj=$2
+	l=$3
+	srcAsm=$4
+
+	#so notations
+	l_short=$(basename ${l%%.*})
+	l_dirPath=$(dirname $l)
+
+	#cc
+	$CC -std=c99 -pedantic     \
+		-s -Os -no-pie         \
+		-nostdlib              \
+		-ffreestanding         \
+		-fno-stack-protector   \
+		-fdata-sections        \
+		-fno-unwind-tables     \
+		-fno-asynchronous-unwind-tables \
+		-ffunction-sections    \
+		-Wl,-n                 \
+		-Wl,--gc-sections      \
+		-Wl,--build-id=none    \
+		-l$l_short             \
+		-L$l_dirPath           \
+		$srcObj                \
+		$srcAsm                \
+		-o $output          && \
+	strip -R .comment $output
+}
+
+
+
+
+
+
+# -------- EXECUTION --------
+
+#tmp dir
+mkdir $pCXD/out/tmp
+
+#compile allocator
+c_to_obj     $TMP/allocator.o       $pCXD/src/lib/allocator.c
+#obj_to_soELF $pCXD/out/allocator.so $TMP/allocator.o $pCXD/src/std/syscalls.s || exit 1
+
+#compile demo prog
+#c_to_obj      $TMP/prog.o   $pCXD/src/prog.c
+#obj_to_exeELF $pCXD/out/run $TMP/prog.o $pCXD/out/allocator.so $pCXD/src/std/syscalls.s

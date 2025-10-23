@@ -1,0 +1,25 @@
+#!/bin/bash
+
+
+
+# -------- DECLARATIONS --------
+
+#exit on error
+set -e
+
+#current execution directory
+CXD=$(dirname $(realpath $0))
+pCXD=$(dirname $CXD)
+
+
+
+
+
+
+# -------- EXECUTION --------
+
+#remove every generated files
+$CXD/clean
+echo "Also removing generated executables..."
+rm --recursive --force $pCXD/out
+echo "Full removal done."
