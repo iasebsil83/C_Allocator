@@ -25,7 +25,6 @@
 
 //syscalls
 extern void syscall_write(uint fd, char* c, uint len);
-//extern void syscall_fsync(uint fd);
 extern void syscall_exit(uint err);
 
 
@@ -36,12 +35,6 @@ uint str_len(char* s) {
 	while(s[0] != '\x00'){ s++; len++; }
 	return len;
 }
-
-/*void str_write(char* dst, char* src) {
-	for(uint i=0; i < str_len(src); i++){
-		dst[i] = src[i];
-	}
-}*/
 
 char u4_on_1hex(byt b) {
 	if(b < 10){ return '0' + b;      }
@@ -112,9 +105,6 @@ void prt_u64(ulng l) {
 
 // ---------------- EXECUTION ----------------
 
-//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< tmp
-//extern uint a_len;
-
 //main
 void _start(){
 
@@ -127,7 +117,7 @@ void _start(){
 
 	//allocating an uncommon nbr of bytes
 	prt("Trying to allocate uint* p1\n");
-	uint* p1 = newMap(10);
+	uint* p1 = new(10);
 	prt("Successfully allocated p1\n\n");
 
 	//print out returned adr
@@ -137,6 +127,7 @@ void _start(){
 	//print p1 content byte per byte <---- Try looking too far, it must crash with SEG FAULT
 	prt("p1 start [\n");
 	for(uint u=0; u < 10; u++){ prt_u8( ((ubyt*)p1)[u] ); }
+	for(uint u=0; u < 10; u++){ ((ubyt*)p1)[u] = '1'; }
 	prt("] p1 end\n\n");
 
 	//read - write into p1
@@ -163,7 +154,7 @@ void _start(){
 
 	//allocating an uncommon nbr of bytes
 	prt("Trying to allocate uint* p2\n");
-	uint* p2 = newMap(14);
+	uint* p2 = new(14);
 	prt("Successfully allocated p2\n\n");
 
 	//print out returned adr
@@ -194,14 +185,15 @@ void _start(){
 	prt("] p2 end\n\n");
 
 
+
 	// TEST 3: FREE
 
 	//free p1
 	prt("Trying to free p1\n");
-	freeMap(p1);
+	free(p1);
 	prt("Successfully freed p1\n\n");
 	prt("Trying to free p2\n");
-	freeMap(p2);
+	free(p2);
 	prt("Successfully freed p2\n");
 
 	//end of exe
