@@ -76,7 +76,7 @@ void u64_on16hex(ulng n, char* txt) {
 
 void prt(char* s) {
 	uint s_len = str_len(s);
-	syscall_write(0, s, s_len);
+	syscall_write(STDOUT, s, s_len);
 	//syscall_fsync(0);
 }
 
@@ -197,7 +197,7 @@ void _start(){
 	prt("Successfully freed p2\n");
 
 	//end of exe
-	syscall_exit(37);
+	syscall_exit(ERR__SUCCESS);
 
 	/*//prepare main loop data
 	char c;

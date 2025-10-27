@@ -8,7 +8,7 @@
 
 
 
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ALLOCATOR [0.1.0] ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ALLOCATOR [0.1.1] ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                  Allocator by I.A.
 
         This program is a bare metal library that allows you to allocate and free
@@ -116,8 +116,8 @@ static void* newPC(ulng len) {
 
 	//system refuses => stop program
 	if(pc == MM__MAP_FAILED){
-		syscall_write(0, "[ ERROR ] > Unable to allocate more memory for process.", 59);
-		syscall_exit(43);
+		syscall_write(STDERR, "[ ERROR ] > Unable to allocate more memory for process.", 59);
+		syscall_exit(ERR__SYSTEM_REFUSE_ALLOC);
 	}
 
 
@@ -157,8 +157,8 @@ static void* newPC(ulng len) {
 
 static void freePC(ulng* adr, ulng len) {
 	if(syscall_munmap(adr, len) == -1){
-		syscall_write(0, "[ ERROR ] > Unable to de-allocate memory from process.", 54);
-		syscall_exit(54);
+		syscall_write(STDERR, "[ ERROR ] > Unable to de-allocate memory from process.", 54);
+		syscall_exit(ERR__SYSTEM_REFUSE_FREE);
 	}
 }
 
@@ -193,6 +193,11 @@ void* new(ulng len){
 	ulng* bestPtl_outRange             = null;
 	ulng  bestPtl_outRange_size        = 0;
 	ulng* bestPtl_outRange_freeLstHead = null;
+
+	//neighbor limitation
+	#ifdef MM__BEST_FIT_BEST__NEIGHBOR_LIMIT_ENABLED
+	ulng PCnbr = 0;
+	#endif
 
 	//all researches at once
 	ulng* curPC = a_latestPC; //start by a LOCAL search
@@ -252,6 +257,12 @@ void* new(ulng len){
 
 		//go to previous PC (neighbor check)
 		curPC = (ulng*)curPC[0];
+
+		//limit reached
+		#ifdef MM__BEST_FIT_BEST__NEIGHBOR_LIMIT_ENABLED
+		PCnbr++;
+		if(PCnbr == MM__BEST_FIT_BEST__NEIGHBOR_LIMIT){ break; }
+		#endif
 	}
 
 	//still no exact match or in-range potential found => use out-range potential
@@ -298,7 +309,7 @@ void free(void* r){
 
 			//VERY IMPORTANT !!! If having both merge prev & after, freedSlot must be updated so that we will merge the prevMergedSlot with the next one.
 			freedSlot = curFreeSlot;
-			if(prevNeedingUpdate){ prevNeedingUpdate[0] = curFreeSlot; } //also, the prevRef that has been updated must be updated once more to the even-before chunk (=current one) !
+			if(prevNeedingUpdate){ prevNeedingUpdate[0] = (ulng)curFreeSlot; } //also, the prevRef that has been updated must be updated once more to the even-before chunk (=current one) !
 
 			//optimization
 			if(mergedNext){ return; }
@@ -346,26 +357,139 @@ void free(void* r){
 
 
 
-// ---------------- MEMORY SAFETY ----------------
 
-//unsafe: read - write
-/*void* unsafe_read(void* r, ulng size){
-	
+
+
+// ---------------- MEMORY ACCESS ----------------
+
+//unsafe: read
+u8  unsafe_ru8( void* r, ulng offset){ return ((u8*)(  ((ubyt*)r)+offset ))[0]; }
+u16 unsafe_ru16(void* r, ulng offset){ return ((u16*)( ((ubyt*)r)+offset ))[0]; }
+u32 unsafe_ru32(void* r, ulng offset){ return ((u32*)( ((ubyt*)r)+offset ))[0]; }
+u64 unsafe_ru64(void* r, ulng offset){ return ((u64*)( ((ubyt*)r)+offset ))[0]; }
+
+
+
+//unsafe: write
+void unsafe_wu8( void* r, ulng offset, u8  e){ ((u8*)(  ((ubyt*)r)+offset ))[0] = e; }
+void unsafe_wu16(void* r, ulng offset, u16 e){ ((u16*)( ((ubyt*)r)+offset ))[0] = e; }
+void unsafe_wu32(void* r, ulng offset, u32 e){ ((u32*)( ((ubyt*)r)+offset ))[0] = e; }
+void unsafe_wu64(void* r, ulng offset, u64 e){ ((u64*)( ((ubyt*)r)+offset ))[0] = e; }
+
+
+
+//safe: read
+u8 safe_ru8(void* r, ulng offset){
+	if( offset > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u8), so used literal "1"
+
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal read U8 from heap.\n", 39);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_RU8);
+	}
+	return unsafe_ru8(r, offset);
 }
 
-void unsafe_write(void* r, void* dat, ulng size){
-	
+u16 safe_ru16(void* r, ulng offset){
+	if( offset+2 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
+
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal read U16 from heap.\n", 40);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_RU16);
+	}
+	return unsafe_ru16(r, offset);
+}
+
+u32 safe_ru32(void* r, ulng offset){
+	if( offset+4 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
+
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal read U32 from heap.\n", 40);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_RU32);
+	}
+	return unsafe_ru32(r, offset);
+}
+
+u64 safe_ru64(void* r, ulng offset){
+	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
+
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal read U64 from heap.\n", 40);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_RU64);
+	}
+	return unsafe_ru64(r, offset);
 }
 
 
 
+//safe: write
+void safe_wu8(void* r, ulng offset, u8 e){
+	if( offset > (((ulng*)r)-2)[0] ){
 
-//safe: read - write
-void* safe_readN(void* r, ulng size){
-	
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal write U8 from heap.\n", 40);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_WU8);
+	}
+	return unsafe_wu8(r, offset, e);
 }
 
-boo safe_write(void* r, void* dat, ulng size){
-	
+void safe_wu16(void* r, ulng offset, u16 e){
+	if( offset+2 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
+
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal write U16 from heap.\n", 41);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_WU16);
+	}
+	return unsafe_wu16(r, offset, e);
 }
-*/
+
+void safe_wu32(void* r, ulng offset, u32 e){
+	if( offset+4 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
+
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal write U32 from heap.\n", 41);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_WU32);
+	}
+	return unsafe_wu32(r, offset, e);
+}
+
+void safe_wu64(void* r, ulng offset, u64 e){
+	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
+
+		//optl output
+		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
+		syscall_write(STDERR, "[ ERROR ] > Illegal write U64 from heap.\n", 41);
+		#endif
+
+		//spc err
+		syscall_exit(ERR__ILLEGAL_HEAP_WU64);
+	}
+	return unsafe_wu64(r, offset, e);
+}

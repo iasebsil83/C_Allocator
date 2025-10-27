@@ -4,6 +4,12 @@ CURRENT STATE:
 
 
 
+27/10/2025 > [0.1.1]:
+- Made a first real allocator algorithm, code + explanations: BEST-FIT-BET.
+- Added memory access functions.
+
+
+
 23/10/2025 > [0.1.0]:
 - Created allocator.c/.h.
 - Added the demonstration programs.

@@ -8,17 +8,23 @@
 
 // ---------------- DEFINITIONS ----------------
 
-//root types: signed
+//common types: signed
 typedef signed char      byt;
 typedef signed long long lng;
 
-//root types: unsigned
+//common types: unsigned
 typedef unsigned char      ubyt;
 typedef unsigned int       uint;
 typedef unsigned long long ulng;
 
 //other
 typedef byt boo;
+
+//root types !WARNING: WORKING FOR x86_64 ONLY !
+typedef unsigned char       u8;
+typedef unsigned short     u16;
+typedef unsigned int       u32;
+typedef unsigned long long u64;
 
 //default dat itms
 #define null ((void*)0)
@@ -277,7 +283,7 @@ extern ulng* a_latestPC;
 #define MM__PROT_WRITE 0x00000002
 #define MM__PROT_EXEC  0x00000004
 
-//mapping type
+//maps
 #define MM__MAP_SHARED          0x00000001
 #define MM__MAP_PRIVATE         0x00000002
 #define MM__MAP_SHARED_VALIDATE 0x00000003
@@ -296,15 +302,45 @@ extern ulng* a_latestPC;
 #define MM__MAP_SYNC            0x00080000
 #define MM__MAP_FIXED_NOREPLACE 0x00100000
 #define MM__MAP_FILE            0x00000000
+#define MM__MAP_FAILED ((void*)0xffffffff) //<=> -1
+
+//std streams
+#define STDIN  0
+#define STDOUT 1
+#define STDERR 2
 
 //err
-#define MM__MAP_FAILED ((void*)0xffffffff) //<=> -1
+#define ERR__SUCCESS               0
+#define ERR__FAILURE               1
+#define ERR__SHELL_BUILTIN         2
+#define ERR__EXECUTION_DENIED    126
+#define ERR__CMD_NOT_FOUND       127
+#define ERR__INVALID_EXIT_CODE   128
+#define ERR__SIGINT              130
+#define ERR__SIGKILL             137
+#define ERR__SEG_FAULT           139
+#define ERR__SIGTERM             143
+#define ERR__SYSTEM_REFUSE_ALLOC 144 //allocator related
+#define ERR__SYSTEM_REFUSE_FREE  145 //allocator related
+#define ERR__ILLEGAL_HEAP_RU8    146 //allocator related
+#define ERR__ILLEGAL_HEAP_RU16   147 //allocator related
+#define ERR__ILLEGAL_HEAP_RU32   148 //allocator related
+#define ERR__ILLEGAL_HEAP_RU64   149 //allocator related
+#define ERR__ILLEGAL_HEAP_WU8    150 //allocator related
+#define ERR__ILLEGAL_HEAP_WU16   151 //allocator related
+#define ERR__ILLEGAL_HEAP_WU32   152 //allocator related
+#define ERR__ILLEGAL_HEAP_WU64   153 //allocator related
+#define ERR__EXIT_OUT_OF_RANGE   255
 
 //pad every allocation request into a multiple of sizeof(ulng)
 #define MM__PAD_ALLOC_LEN_ULNG
 
-//best-fit-bet
-#define MM__BEST_FIT_BET__THRESHOLD 8
+//best-fit-bet !WARNING: CHECK EXPLANATIONS ABOVE BEFORE MODIFYING
+#define MM__BEST_FIT_BET__THRESHOLD      8
+#define MM__BEST_FIT_BET__NEIGHBOR_LIMIT 18446744073709551616
+
+//memory access
+#define MM__ILLEGAL_ACCESS_OUTPUT //comment to disable output msg on illegal access
 
 
 
@@ -326,5 +362,36 @@ ulng padP2(ulng n, ulng p2);
 //new - free
 void* new(ulng len);
 void  free(void* r);
+
+
+
+
+
+
+// ---------------- MEMORY PROTECTION ----------------
+
+//unsafe: read
+u8  unsafe_ru8( void* r, ulng offset);
+u16 unsafe_ru16(void* r, ulng offset);
+u32 unsafe_ru32(void* r, ulng offset);
+u64 unsafe_ru64(void* r, ulng offset);
+
+//unsafe: write
+void unsafe_wu8( void* r, ulng offset, u8  e);
+void unsafe_wu16(void* r, ulng offset, u16 e);
+void unsafe_wu32(void* r, ulng offset, u32 e);
+void unsafe_wu64(void* r, ulng offset, u64 e);
+
+//safe: read
+u8  safe_ru8( void* r, ulng offset);
+u16 safe_ru16(void* r, ulng offset);
+u32 safe_ru32(void* r, ulng offset);
+u64 safe_ru64(void* r, ulng offset);
+
+//safe: write
+void safe_wu8( void* r, ulng offset, u8  e);
+void safe_wu16(void* r, ulng offset, u16 e);
+void safe_wu32(void* r, ulng offset, u32 e);
+void safe_wu64(void* r, ulng offset, u64 e);
 
 #endif
