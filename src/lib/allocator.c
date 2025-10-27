@@ -366,15 +366,18 @@ void heap__free(void* r){
 u8  heap__unsafe_ru8( void* r, ulng offset){ return ((u8*)(  ((ubyt*)r)+offset ))[0]; }
 u16 heap__unsafe_ru16(void* r, ulng offset){ return ((u16*)( ((ubyt*)r)+offset ))[0]; }
 u32 heap__unsafe_ru32(void* r, ulng offset){ return ((u32*)( ((ubyt*)r)+offset ))[0]; }
+#ifdef ARCH64
 u64 heap__unsafe_ru64(void* r, ulng offset){ return ((u64*)( ((ubyt*)r)+offset ))[0]; }
-
+#endif
 
 
 //unsafe: write
 void heap__unsafe_wu8( void* r, ulng offset, u8  e){ ((u8*)(  ((ubyt*)r)+offset ))[0] = e; }
 void heap__unsafe_wu16(void* r, ulng offset, u16 e){ ((u16*)( ((ubyt*)r)+offset ))[0] = e; }
 void heap__unsafe_wu32(void* r, ulng offset, u32 e){ ((u32*)( ((ubyt*)r)+offset ))[0] = e; }
+#ifdef ARCH64
 void heap__unsafe_wu64(void* r, ulng offset, u64 e){ ((u64*)( ((ubyt*)r)+offset ))[0] = e; }
+#endif
 
 
 
@@ -421,6 +424,7 @@ u32 heap__safe_ru32(void* r, ulng offset){
 	return heap__unsafe_ru32(r, offset);
 }
 
+#ifdef ARCH64
 u64 heap__safe_ru64(void* r, ulng offset){
 	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
@@ -434,6 +438,7 @@ u64 heap__safe_ru64(void* r, ulng offset){
 	}
 	return heap__unsafe_ru64(r, offset);
 }
+#endif
 
 
 
@@ -480,6 +485,7 @@ void heap__safe_wu32(void* r, ulng offset, u32 e){
 	return heap__unsafe_wu32(r, offset, e);
 }
 
+#ifdef ARCH64
 void heap__safe_wu64(void* r, ulng offset, u64 e){
 	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
@@ -493,6 +499,7 @@ void heap__safe_wu64(void* r, ulng offset, u64 e){
 	}
 	return heap__unsafe_wu64(r, offset, e);
 }
+#endif
 
 
 

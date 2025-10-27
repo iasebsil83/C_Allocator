@@ -6,6 +6,7 @@ CURRENT STATE:
 
 27/10/2025 > [0.1.2]:
 - Added "heap__" headers.
+- Added ARCH64 cfg to enable 32b compatibility also.
 - Added variable memory access functions (write only then).
 
 

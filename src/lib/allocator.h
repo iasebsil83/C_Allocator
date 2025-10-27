@@ -20,11 +20,13 @@ typedef unsigned long long ulng;
 //other
 typedef byt boo;
 
-//root types !WARNING: WORKING FOR x86_64 ONLY !
+//root types
 typedef unsigned char       u8;
 typedef unsigned short     u16;
 typedef unsigned int       u32;
+#ifdef ARCH64
 typedef unsigned long long u64;
+#endif
 
 //default dat itms
 #define null ((void*)0)
@@ -374,25 +376,33 @@ void  heap__free(void* r);
 u8  heap__unsafe_ru8( void* r, ulng offset);
 u16 heap__unsafe_ru16(void* r, ulng offset);
 u32 heap__unsafe_ru32(void* r, ulng offset);
+#ifdef ARCH64
 u64 heap__unsafe_ru64(void* r, ulng offset);
+#endif
 
 //fixed size, unsafe: write
 void heap__unsafe_wu8( void* r, ulng offset, u8  e);
 void heap__unsafe_wu16(void* r, ulng offset, u16 e);
 void heap__unsafe_wu32(void* r, ulng offset, u32 e);
+#ifdef ARCH64
 void heap__unsafe_wu64(void* r, ulng offset, u64 e);
+#endif
 
 //fixed size, safe: read
 u8  heap__safe_ru8( void* r, ulng offset);
 u16 heap__safe_ru16(void* r, ulng offset);
 u32 heap__safe_ru32(void* r, ulng offset);
+#ifdef ARCH64
 u64 heap__safe_ru64(void* r, ulng offset);
+#endif
 
 //fixed size, safe: write
 void heap__safe_wu8( void* r, ulng offset, u8  e);
 void heap__safe_wu16(void* r, ulng offset, u16 e);
 void heap__safe_wu32(void* r, ulng offset, u32 e);
+#ifdef ARCH64
 void heap__safe_wu64(void* r, ulng offset, u64 e);
+#endif
 
 //makes no sens to read on variable size:
 //  How can we know where to put the result if we don't know the size statically (at compile time) ?
