@@ -117,7 +117,7 @@ void _start(){
 
 	//allocating an uncommon nbr of bytes
 	prt("Trying to allocate uint* p1\n");
-	uint* p1 = new(10);
+	uint* p1 = heap__new(10);
 	prt("Successfully allocated p1\n\n");
 
 	//print out returned adr
@@ -154,7 +154,7 @@ void _start(){
 
 	//allocating an uncommon nbr of bytes
 	prt("Trying to allocate uint* p2\n");
-	uint* p2 = new(14);
+	uint* p2 = heap__new(14);
 	prt("Successfully allocated p2\n\n");
 
 	//print out returned adr
@@ -190,10 +190,10 @@ void _start(){
 
 	//free p1
 	prt("Trying to free p1\n");
-	free(p1);
+	heap__free(p1);
 	prt("Successfully freed p1\n\n");
 	prt("Trying to free p2\n");
-	free(p2);
+	heap__free(p2);
 	prt("Successfully freed p2\n");
 
 	//end of exe

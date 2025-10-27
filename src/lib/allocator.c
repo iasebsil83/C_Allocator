@@ -86,12 +86,12 @@ extern void syscall_write(uint fd, char* c, uint len);
 extern void syscall_exit(ulng err);
 
 //latest PC
-ulng* a_latestPC = null;
+ulng* heap__latestPC = null;
 
 
 
 //new - free PC
-static void* newPC(ulng len) {
+static void* heap__newPC(ulng len) {
 
 
 
@@ -128,8 +128,8 @@ static void* newPC(ulng len) {
 	pc[2] = paddedPCLen;
 
 	//chain with other PCs: 1st ulng of PC contains prev PC adr
-	pc[0]      = (ulng)a_latestPC;
-	a_latestPC = pc;               //update latestPC, now we are working on this new one in priority now
+	pc[0]          = (ulng)heap__latestPC;
+	heap__latestPC = pc;                   //update latestPC, now we are working on this new one in priority now
 
 
 
@@ -155,7 +155,7 @@ static void* newPC(ulng len) {
 	return pc+5;          //adr             as 3rd ulng in allocated chunk (6th ulng in PC)
 }
 
-static void freePC(ulng* adr, ulng len) {
+static void heap__freePC(ulng* adr, ulng len) {
 	if(syscall_munmap(adr, len) == -1){
 		syscall_write(STDERR, "[ ERROR ] > Unable to de-allocate memory from process.", 54);
 		syscall_exit(ERR__SYSTEM_REFUSE_FREE);
@@ -170,7 +170,7 @@ static void freePC(ulng* adr, ulng len) {
 // ---------------- USER SCALE ----------------
 
 //new - free
-void* new(ulng len){
+void* heap__new(ulng len){
 
 	//0 bytes to allocate => silent err
 	if(!len){ return null; }
@@ -200,7 +200,7 @@ void* new(ulng len){
 	#endif
 
 	//all researches at once
-	ulng* curPC = a_latestPC; //start by a LOCAL search
+	ulng* curPC = heap__latestPC; //start by a LOCAL search
 	while(curPC != null){
 		ulng* curPC_freeLstHead   = curPC+1;
 		ulng* curFreeSlot_prevRef = curPC_freeLstHead;
@@ -274,10 +274,10 @@ void* new(ulng len){
 	}
 
 	//no even having any out-range potential => allocate new PC
-	return newPC(len);
+	return heap__newPC(len);
 }
 
-void free(void* r){
+void heap__free(void* r){
 	ulng* freedSlot  = ((ulng*)r)-2;
 	ulng* tgtFreeLst = (ulng*)(freedSlot[1]);
 
@@ -337,7 +337,7 @@ void free(void* r){
 	//full PC has been freed => de-allocate memory
 	ulng PCSize = (tgtFreeLst+1)[0];
 	if(totalFreeLstSize + 3*sizeof(ulng) == PCSize){ //3 ulng of PC metadata + each free block occupies the whole PC
-		freePC(tgtFreeLst-1, PCSize);
+		heap__freePC(tgtFreeLst-1, PCSize);
 		return;
 	}
 
@@ -363,23 +363,23 @@ void free(void* r){
 // ---------------- MEMORY ACCESS ----------------
 
 //unsafe: read
-u8  unsafe_ru8( void* r, ulng offset){ return ((u8*)(  ((ubyt*)r)+offset ))[0]; }
-u16 unsafe_ru16(void* r, ulng offset){ return ((u16*)( ((ubyt*)r)+offset ))[0]; }
-u32 unsafe_ru32(void* r, ulng offset){ return ((u32*)( ((ubyt*)r)+offset ))[0]; }
-u64 unsafe_ru64(void* r, ulng offset){ return ((u64*)( ((ubyt*)r)+offset ))[0]; }
+u8  heap__unsafe_ru8( void* r, ulng offset){ return ((u8*)(  ((ubyt*)r)+offset ))[0]; }
+u16 heap__unsafe_ru16(void* r, ulng offset){ return ((u16*)( ((ubyt*)r)+offset ))[0]; }
+u32 heap__unsafe_ru32(void* r, ulng offset){ return ((u32*)( ((ubyt*)r)+offset ))[0]; }
+u64 heap__unsafe_ru64(void* r, ulng offset){ return ((u64*)( ((ubyt*)r)+offset ))[0]; }
 
 
 
 //unsafe: write
-void unsafe_wu8( void* r, ulng offset, u8  e){ ((u8*)(  ((ubyt*)r)+offset ))[0] = e; }
-void unsafe_wu16(void* r, ulng offset, u16 e){ ((u16*)( ((ubyt*)r)+offset ))[0] = e; }
-void unsafe_wu32(void* r, ulng offset, u32 e){ ((u32*)( ((ubyt*)r)+offset ))[0] = e; }
-void unsafe_wu64(void* r, ulng offset, u64 e){ ((u64*)( ((ubyt*)r)+offset ))[0] = e; }
+void heap__unsafe_wu8( void* r, ulng offset, u8  e){ ((u8*)(  ((ubyt*)r)+offset ))[0] = e; }
+void heap__unsafe_wu16(void* r, ulng offset, u16 e){ ((u16*)( ((ubyt*)r)+offset ))[0] = e; }
+void heap__unsafe_wu32(void* r, ulng offset, u32 e){ ((u32*)( ((ubyt*)r)+offset ))[0] = e; }
+void heap__unsafe_wu64(void* r, ulng offset, u64 e){ ((u64*)( ((ubyt*)r)+offset ))[0] = e; }
 
 
 
 //safe: read
-u8 safe_ru8(void* r, ulng offset){
+u8 heap__safe_ru8(void* r, ulng offset){
 	if( offset > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u8), so used literal "1"
 
 		//optl output
@@ -390,10 +390,10 @@ u8 safe_ru8(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU8);
 	}
-	return unsafe_ru8(r, offset);
+	return heap__unsafe_ru8(r, offset);
 }
 
-u16 safe_ru16(void* r, ulng offset){
+u16 heap__safe_ru16(void* r, ulng offset){
 	if( offset+2 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
 
 		//optl output
@@ -404,10 +404,10 @@ u16 safe_ru16(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU16);
 	}
-	return unsafe_ru16(r, offset);
+	return heap__unsafe_ru16(r, offset);
 }
 
-u32 safe_ru32(void* r, ulng offset){
+u32 heap__safe_ru32(void* r, ulng offset){
 	if( offset+4 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
 
 		//optl output
@@ -418,10 +418,10 @@ u32 safe_ru32(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU32);
 	}
-	return unsafe_ru32(r, offset);
+	return heap__unsafe_ru32(r, offset);
 }
 
-u64 safe_ru64(void* r, ulng offset){
+u64 heap__safe_ru64(void* r, ulng offset){
 	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
 		//optl output
@@ -432,13 +432,13 @@ u64 safe_ru64(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU64);
 	}
-	return unsafe_ru64(r, offset);
+	return heap__unsafe_ru64(r, offset);
 }
 
 
 
 //safe: write
-void safe_wu8(void* r, ulng offset, u8 e){
+void heap__safe_wu8(void* r, ulng offset, u8 e){
 	if( offset > (((ulng*)r)-2)[0] ){
 
 		//optl output
@@ -449,10 +449,10 @@ void safe_wu8(void* r, ulng offset, u8 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU8);
 	}
-	return unsafe_wu8(r, offset, e);
+	return heap__unsafe_wu8(r, offset, e);
 }
 
-void safe_wu16(void* r, ulng offset, u16 e){
+void heap__safe_wu16(void* r, ulng offset, u16 e){
 	if( offset+2 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
 
 		//optl output
@@ -463,10 +463,10 @@ void safe_wu16(void* r, ulng offset, u16 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU16);
 	}
-	return unsafe_wu16(r, offset, e);
+	return heap__unsafe_wu16(r, offset, e);
 }
 
-void safe_wu32(void* r, ulng offset, u32 e){
+void heap__safe_wu32(void* r, ulng offset, u32 e){
 	if( offset+4 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
 
 		//optl output
@@ -477,10 +477,10 @@ void safe_wu32(void* r, ulng offset, u32 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU32);
 	}
-	return unsafe_wu32(r, offset, e);
+	return heap__unsafe_wu32(r, offset, e);
 }
 
-void safe_wu64(void* r, ulng offset, u64 e){
+void heap__safe_wu64(void* r, ulng offset, u64 e){
 	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
 		//optl output
@@ -491,5 +491,19 @@ void safe_wu64(void* r, ulng offset, u64 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU64);
 	}
-	return unsafe_wu64(r, offset, e);
+	return heap__unsafe_wu64(r, offset, e);
+}
+
+
+
+//variable size, unsafe: write
+void heap__unsafe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size){
+	for(ulng i=0; i < size; i++){ heap__unsafe_wu8(dst, dstOffset, heap__unsafe_ru8(src, srcOffset)); }
+}
+
+
+
+//variable size, safe: write
+void heap__safe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size){
+	for(ulng i=0; i < size; i++){ heap__safe_wu8(dst, dstOffset, heap__safe_ru8(src, srcOffset)); }
 }

@@ -272,7 +272,7 @@ typedef unsigned long long u64;
 */
 
 //latest PC
-extern ulng* a_latestPC;
+extern ulng* heap__latestPC;
 
 //csts
 #define MM__PAGE_SIZE 4096
@@ -360,38 +360,47 @@ ulng padP2(ulng n, ulng p2);
 // ---------------- USER SCALE ----------------
 
 //new - free
-void* new(ulng len);
-void  free(void* r);
+void* heap__new(ulng len);
+void  heap__free(void* r);
 
 
 
 
 
 
-// ---------------- MEMORY PROTECTION ----------------
+// ---------------- MEMORY ACCESS ----------------
 
-//unsafe: read
-u8  unsafe_ru8( void* r, ulng offset);
-u16 unsafe_ru16(void* r, ulng offset);
-u32 unsafe_ru32(void* r, ulng offset);
-u64 unsafe_ru64(void* r, ulng offset);
+//fixed size, unsafe: read
+u8  heap__unsafe_ru8( void* r, ulng offset);
+u16 heap__unsafe_ru16(void* r, ulng offset);
+u32 heap__unsafe_ru32(void* r, ulng offset);
+u64 heap__unsafe_ru64(void* r, ulng offset);
 
-//unsafe: write
-void unsafe_wu8( void* r, ulng offset, u8  e);
-void unsafe_wu16(void* r, ulng offset, u16 e);
-void unsafe_wu32(void* r, ulng offset, u32 e);
-void unsafe_wu64(void* r, ulng offset, u64 e);
+//fixed size, unsafe: write
+void heap__unsafe_wu8( void* r, ulng offset, u8  e);
+void heap__unsafe_wu16(void* r, ulng offset, u16 e);
+void heap__unsafe_wu32(void* r, ulng offset, u32 e);
+void heap__unsafe_wu64(void* r, ulng offset, u64 e);
 
-//safe: read
-u8  safe_ru8( void* r, ulng offset);
-u16 safe_ru16(void* r, ulng offset);
-u32 safe_ru32(void* r, ulng offset);
-u64 safe_ru64(void* r, ulng offset);
+//fixed size, safe: read
+u8  heap__safe_ru8( void* r, ulng offset);
+u16 heap__safe_ru16(void* r, ulng offset);
+u32 heap__safe_ru32(void* r, ulng offset);
+u64 heap__safe_ru64(void* r, ulng offset);
 
-//safe: write
-void safe_wu8( void* r, ulng offset, u8  e);
-void safe_wu16(void* r, ulng offset, u16 e);
-void safe_wu32(void* r, ulng offset, u32 e);
-void safe_wu64(void* r, ulng offset, u64 e);
+//fixed size, safe: write
+void heap__safe_wu8( void* r, ulng offset, u8  e);
+void heap__safe_wu16(void* r, ulng offset, u16 e);
+void heap__safe_wu32(void* r, ulng offset, u32 e);
+void heap__safe_wu64(void* r, ulng offset, u64 e);
+
+//makes no sens to read on variable size:
+//  How can we know where to put the result if we don't know the size statically (at compile time) ?
+
+//variable size, unsafe: write
+void heap__unsafe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size);
+
+//variable size, safe: write
+void heap__safe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size);
 
 #endif
