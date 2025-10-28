@@ -1,6 +1,7 @@
 CURRENT STATE:
 - Changed alloc/free into "ref" use.
 - Changed each mem interaction into iref.
+- Added heap__sz().
     BUGS: .
     NOTES: .
 

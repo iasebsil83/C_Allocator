@@ -368,6 +368,9 @@ ulng padP2(ulng n, ulng p2);
 
 // ---------------- USER SCALE ----------------
 
+//size
+ulng heap__sz(ref r);
+
 //new - free
 ref  heap__new(ulng len);
 void heap__free(ref r);

@@ -169,6 +169,11 @@ static void heap__freePC(ref adr, ulng len) {
 
 // ---------------- USER SCALE ----------------
 
+//size
+ulng heap__sz(ref r){ return (((ulng*)r)-2)[0]; }
+
+
+
 //new - free
 ref heap__new(ulng len){
 
@@ -383,7 +388,7 @@ void heap__unsafe_wu64(iref ir, u64 e){ ((u64*)( ((ubyt*)ir.base)+ ir.offset ))[
 
 //safe: read
 u8 heap__safe_ru8(iref ir){
-	if( ir.offset > (((ulng*)ir.base)-2)[0] ){ //seems a bit stupid to make sizeof(u8), so used literal "1"
+	if(ir.offset > heap__sz(ir.base)){ //seems a bit stupid to make sizeof(u8), so used literal "1"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -397,7 +402,7 @@ u8 heap__safe_ru8(iref ir){
 }
 
 u16 heap__safe_ru16(iref ir){
-	if( ir.offset+2 > (((ulng*)ir.base)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
+	if(ir.offset+2 > heap__sz(ir.base)){ //seems a bit stupid to make sizeof(u16), so used literal "2"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -411,7 +416,7 @@ u16 heap__safe_ru16(iref ir){
 }
 
 u32 heap__safe_ru32(iref ir){
-	if( ir.offset+4 > (((ulng*)ir.base)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
+	if(ir.offset+4 > heap__sz(ir.base)){ //seems a bit stupid to make sizeof(u32), so used literal "4"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -426,7 +431,7 @@ u32 heap__safe_ru32(iref ir){
 
 #ifdef ARCH64
 u64 heap__safe_ru64(iref ir){
-	if( ir.offset+8 > (((ulng*)ir.base)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
+	if(ir.offset+8 > heap__sz(ir.base)){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -444,7 +449,7 @@ u64 heap__safe_ru64(iref ir){
 
 //safe: write
 void heap__safe_wu8(iref ir, u8 e){
-	if( ir.offset > (((ulng*)ir.base)-2)[0] ){
+	if(ir.offset > heap__sz(ir.base)){
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -458,7 +463,7 @@ void heap__safe_wu8(iref ir, u8 e){
 }
 
 void heap__safe_wu16(iref ir, u16 e){
-	if( ir.offset+2 > (((ulng*)ir.base)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
+	if(ir.offset+2 > heap__sz(ir.base)){ //seems a bit stupid to make sizeof(u16), so used literal "2"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -472,7 +477,7 @@ void heap__safe_wu16(iref ir, u16 e){
 }
 
 void heap__safe_wu32(iref ir, u32 e){
-	if( ir.offset+4 > (((ulng*)ir.base)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
+	if(ir.offset+4 > heap__sz(ir.base)){ //seems a bit stupid to make sizeof(u32), so used literal "4"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -487,7 +492,7 @@ void heap__safe_wu32(iref ir, u32 e){
 
 #ifdef ARCH64
 void heap__safe_wu64(iref ir, u64 e){
-	if( ir.offset+8 > (((ulng*)ir.base)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
+	if(ir.offset+8 > heap__sz(ir.base)){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
