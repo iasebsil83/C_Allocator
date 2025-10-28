@@ -1,5 +1,6 @@
 CURRENT STATE:
-- Changed every mem interaction into heap__ref structure access (instead of ref/ptr).
+- Changed alloc/free into "ref" use.
+- Changed each mem interaction into iref.
     BUGS: .
     NOTES: .
 

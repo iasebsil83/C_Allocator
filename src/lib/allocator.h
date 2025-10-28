@@ -276,6 +276,13 @@ typedef unsigned long long u64;
 //latest PC
 extern ulng* heap__latestPC;
 
+//ref - iref <---- ref should mean "ptr which cannot have ath ope", it should only be assigned and overwritten completely, nothing more !
+typedef void* ref;
+typedef struct {
+	ref  base;
+	ulng offset;
+} iref;
+
 //csts
 #define MM__PAGE_SIZE 4096
 
@@ -304,7 +311,7 @@ extern ulng* heap__latestPC;
 #define MM__MAP_SYNC            0x00080000
 #define MM__MAP_FIXED_NOREPLACE 0x00100000
 #define MM__MAP_FILE            0x00000000
-#define MM__MAP_FAILED ((void*)0xffffffff) //<=> -1
+#define MM__MAP_FAILED ((ref)0xffffffff) //<=> -1
 
 //std streams
 #define STDIN  0
@@ -344,12 +351,6 @@ extern ulng* heap__latestPC;
 //memory access
 #define MM__ILLEGAL_ACCESS_OUTPUT //comment to disable output msg on illegal access
 
-//heap refs
-typedef struct {
-	void* r;      //must refer to an allocated block ONLY (not just a random ref)
-	ulng  offset;
-} heap__ref;
-
 
 
 
@@ -368,8 +369,8 @@ ulng padP2(ulng n, ulng p2);
 // ---------------- USER SCALE ----------------
 
 //new - free
-heap__ref heap__new(ulng len);
-void      heap__free(heap__ref r);
+ref  heap__new(ulng len);
+void heap__free(ref r);
 
 
 
@@ -379,44 +380,44 @@ void      heap__free(heap__ref r);
 // ---------------- MEMORY ACCESS ----------------
 
 //fixed size, unsafe: read
-u8  heap__unsafe_ru8( heap__ref h);
-u16 heap__unsafe_ru16(heap__ref h);
-u32 heap__unsafe_ru32(heap__ref h);
+u8  heap__unsafe_ru8( iref ir);
+u16 heap__unsafe_ru16(iref ir);
+u32 heap__unsafe_ru32(iref ir);
 #ifdef ARCH64
-u64 heap__unsafe_ru64(heap__ref h);
+u64 heap__unsafe_ru64(iref ir);
 #endif
 
 //fixed size, unsafe: write
-void heap__unsafe_wu8( heap__ref h, u8  e);
-void heap__unsafe_wu16(heap__ref h, u16 e);
-void heap__unsafe_wu32(heap__ref h, u32 e);
+void heap__unsafe_wu8( iref ir, u8  e);
+void heap__unsafe_wu16(iref ir, u16 e);
+void heap__unsafe_wu32(iref ir, u32 e);
 #ifdef ARCH64
-void heap__unsafe_wu64(heap__ref h, u64 e);
+void heap__unsafe_wu64(iref ir, u64 e);
 #endif
 
 //fixed size, safe: read
-u8  heap__safe_ru8( heap__ref h);
-u16 heap__safe_ru16(heap__ref h);
-u32 heap__safe_ru32(heap__ref h);
+u8  heap__safe_ru8( iref ir);
+u16 heap__safe_ru16(iref ir);
+u32 heap__safe_ru32(iref ir);
 #ifdef ARCH64
-u64 heap__safe_ru64(heap__ref h);
+u64 heap__safe_ru64(iref ir);
 #endif
 
 //fixed size, safe: write
-void heap__safe_wu8( heap__ref h, u8  e);
-void heap__safe_wu16(heap__ref h, u16 e);
-void heap__safe_wu32(heap__ref h, u32 e);
+void heap__safe_wu8( iref ir, u8  e);
+void heap__safe_wu16(iref ir, u16 e);
+void heap__safe_wu32(iref ir, u32 e);
 #ifdef ARCH64
-void heap__safe_wu64(heap__ref h, u64 e);
+void heap__safe_wu64(iref ir, u64 e);
 #endif
 
 //makes no sens to read on variable size:
 //  How can we know where to put the result if we don't know the size statically (at compile time) ?
 
 //variable size, unsafe: write
-void heap__unsafe_w(heap__ref src, heap__ref dst, ulng size);
+void heap__unsafe_w(iref src, iref dst, ulng size);
 
 //variable size, safe: write
-void heap__safe_w(heap__ref src, heap__ref dst, ulng size);
+void heap__safe_w(iref src, iref dst, ulng size);
 
 #endif

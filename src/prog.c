@@ -1,5 +1,8 @@
 // ---------------- IMPORTATIONS ----------------
 
+//arch
+#define ARCH64
+
 //allocator
 #include "lib/allocator.h"
 
@@ -36,16 +39,16 @@ uint str_len(char* s) {
 	return len;
 }
 
-char u4_on_1hex(byt b) {
+char u4_on_1hex(u8 b) {
 	if(b < 10){ return '0' + b;      }
 	if(b < 16){ return 'a' + b - 10; }
 	return '#'; //means "err"
 }
-void u8_on2hex(ubyt n, char* txt) {
+void u8_on2hex(u8 n, char* txt) {
 	txt[0] = u4_on_1hex((n & '\xf0') >> 4);
 	txt[1] = u4_on_1hex( n & '\x0f'      );
 }
-void u32_on8hex(uint n, char* txt) {
+void u32_on8hex(u32 n, char* txt) {
 	txt[0] = u4_on_1hex((n & 0xf0000000) >> 28);
 	txt[1] = u4_on_1hex((n & 0x0f000000) >> 24);
 	txt[2] = u4_on_1hex((n & 0x00f00000) >> 20);
@@ -55,7 +58,8 @@ void u32_on8hex(uint n, char* txt) {
 	txt[6] = u4_on_1hex((n & 0x000000f0) >>  4);
 	txt[7] = u4_on_1hex( n & 0x0000000f       );
 }
-void u64_on16hex(ulng n, char* txt) {
+#ifdef ARCH64
+void u64_on16hex(u64 n, char* txt) {
 	txt[ 0] = u4_on_1hex((n & 0xf000000000000000) >> 60);
 	txt[ 1] = u4_on_1hex((n & 0x0f00000000000000) >> 56);
 	txt[ 2] = u4_on_1hex((n & 0x00f0000000000000) >> 52);
@@ -73,30 +77,35 @@ void u64_on16hex(ulng n, char* txt) {
 	txt[14] = u4_on_1hex((n & 0x00000000000000f0) >>  4);
 	txt[15] = u4_on_1hex( n & 0x000000000000000f       );
 }
+#endif
 
 void prt(char* s) {
 	uint s_len = str_len(s);
 	syscall_write(STDOUT, s, s_len);
-	//syscall_fsync(0);
 }
 
-void prt_u8(ubyt b) {
+void prt_u8(u8 b) {
 	char out_u8[] = "  [bb]\n";
 	u8_on2hex(b, out_u8+3);
 	prt(out_u8);
 }
 
-void prt_u32(uint i) {
+void prt_u32(u32 i) {
 	char out_u32[] = "  [ii..nn,,]\n";
 	u32_on8hex(i, out_u32+3);
 	prt(out_u32);
 }
 
-void prt_u64(ulng l) {
+#ifdef ARCH64
+void prt_u64(u64 l) {
 	char out_u64[] = "  [--uu::ll;;oo++gg]\n";
 	u64_on16hex(l, out_u64+3);
 	prt(out_u64);
 }
+void prt_ulng(ulng l) { prt_u64(l); }
+#else
+void prt_ulng(ulng l) { prt_u32(l); }
+#endif
 
 
 
@@ -117,35 +126,36 @@ void _start(){
 
 	//allocating an uncommon nbr of bytes
 	prt("Trying to allocate uint* p1\n");
-	uint* p1 = heap__new(10);
+	ref  r1 = heap__new(10);
+	u32* p1 = r1;
 	prt("Successfully allocated p1\n\n");
 
 	//print out returned adr
 	prt("p1 allocated under address\n");
-	prt_u64((ulng)p1);
+	prt_ulng((ulng)p1);
 
 	//print p1 content byte per byte <---- Try looking too far, it must crash with SEG FAULT
 	prt("p1 start [\n");
-	for(uint u=0; u < 10; u++){ prt_u8( ((ubyt*)p1)[u] ); }
-	for(uint u=0; u < 10; u++){ ((ubyt*)p1)[u] = '1'; }
+	for(u32 u=0; u < 10; u++){ prt_u8( ((u8*)p1)[u] ); }
+	for(u32 u=0; u < 10; u++){ ((u8*)p1)[u] = '1'; }
 	prt("] p1 end\n\n");
 
 	//read - write into p1
 	prt("Trying to read/write from/to p1\n");
-	p1[0]          = 5;
-	uint i1        = p1[1];
-	((ubyt*)p1)[8] = '4';         //= '\x34' = 0b0011_0100
-	ubyt b1        = ((ubyt*)p1)[9];
+	p1[0]        = 5;
+	u32 i1       = p1[1];
+	((u8*)p1)[8] = '4';         //= '\x34' = 0b0011_0100
+	u8  b1       = ((u8*)p1)[9];
 	prt("Successfully read/wrote from/to p1\n\n");
 
 	//re-display with modifications
 	prt("i1 = p1[1]\n");
 	prt_u32(i1);
-	prt("b1 = p1(ubyt*)[9]\n");
+	prt("b1 = p1(u8*)[9]\n");
 	prt_u8(b1);
-	prt("wrote p1[0] = 5 and ((ubyt*)p1)[8] = '\\x34'\n");
+	prt("wrote p1[0] = 5 and ((u8*)p1)[8] = '\\x34'\n");
 	prt("p1 now [\n");
-	for(uint u=0; u < 10; u++){ prt_u8( ((ubyt*)p1)[u] ); }
+	for(u32 u=0; u < 10; u++){ prt_u8( ((u8*)p1)[u] ); }
 	prt("] p1 end\n\n");
 
 
@@ -153,35 +163,36 @@ void _start(){
 	// TEST 2: P2
 
 	//allocating an uncommon nbr of bytes
-	prt("Trying to allocate uint* p2\n");
-	uint* p2 = heap__new(14);
+	prt("Trying to allocate u32* p2\n");
+	ref  r2 = heap__new(14);
+	u32* p2 = r2;
 	prt("Successfully allocated p2\n\n");
 
 	//print out returned adr
 	prt("p2 allocated under address\n");
-	prt_u64((ulng)p2);
+	prt_ulng((ulng)p2);
 
 	//print p2 content byte per byte <---- Try looking too far, it must crash with SEG FAULT
 	prt("p2 start [\n");
-	for(uint u=0; u < 14; u++){ prt_u8( ((ubyt*)p2)[u] ); }
+	for(u32 u=0; u < 14; u++){ prt_u8( ((u8*)p2)[u] ); }
 	prt("] p2 end\n\n");
 
 	//read - write into p2
 	prt("Trying to read/write from/to p2\n");
 	p2[1]          = 8;
-	uint i2        = p2[2];
-	((ubyt*)p2)[1] = '\xc2';
-	ubyt b2        = ((ubyt*)p2)[13];
+	u32 i2        = p2[2];
+	((u8*)p2)[1] = '\xc2';
+	u8 b2        = ((u8*)p2)[13];
 	prt("Successfully read/wrote from/to p2\n\n");
 
 	//re-display with modifications
 	prt("i2 = p2[2]\n");
 	prt_u32(i2);
-	prt("b2 = p2(ubyt*)[13]\n");
+	prt("b2 = p2(u8*)[13]\n");
 	prt_u8(b2);
-	prt("wrote p2[0] = 8 and p2(ubyt*)[1] = '\\xc2'\n");
+	prt("wrote p2[0] = 8 and p2(u8*)[1] = '\\xc2'\n");
 	prt("p2 now [\n");
-	for(uint u=0; u < 14; u++){ prt_u8( ((ubyt*)p2)[u] ); }
+	for(u32 u=0; u < 14; u++){ prt_u8( ((u8*)p2)[u] ); }
 	prt("] p2 end\n\n");
 
 
@@ -190,10 +201,10 @@ void _start(){
 
 	//free p1
 	prt("Trying to free p1\n");
-	heap__free(p1);
+	heap__free(r1);
 	prt("Successfully freed p1\n\n");
 	prt("Trying to free p2\n");
-	heap__free(p2);
+	heap__free(r2);
 	prt("Successfully freed p2\n");
 
 	//end of exe
