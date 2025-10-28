@@ -1,4 +1,5 @@
 CURRENT STATE:
+- Changed every mem interaction into heap__ref structure access (instead of ref/ptr).
     BUGS: .
     NOTES: .
 

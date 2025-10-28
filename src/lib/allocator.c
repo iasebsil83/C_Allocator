@@ -91,7 +91,7 @@ ulng* heap__latestPC = null;
 
 
 //new - free PC
-static void* heap__newPC(ulng len) {
+static heap__ref heap__newPC(ulng len) {
 
 
 
@@ -150,9 +150,13 @@ static void* heap__newPC(ulng len) {
 	pc[1] = (ulng)firstFreeSlot;
 
 	//set allocated region
-	pc[3] =          len; //size            as 1st ulng in allocated chunk (4th ulng in PC)
-	pc[4] = (ulng)(pc+1); //freeLstHead ref as 2nd ulng in allocated chunk (5th ulng in PC)
-	return pc+5;          //adr             as 3rd ulng in allocated chunk (6th ulng in PC)
+	pc[3]         =          len; //size            as 1st ulng in allocated chunk (4th ulng in PC)
+	pc[4]         = (ulng)(pc+1); //freeLstHead ref as 2nd ulng in allocated chunk (5th ulng in PC)
+	heap__ref res = {
+		.r      = pc+5,           //adr             as 3rd ulng in allocated chunk (6th ulng in PC)
+		.offset = 0
+	};
+	return res;
 }
 
 static void heap__freePC(ulng* adr, ulng len) {
@@ -170,10 +174,13 @@ static void heap__freePC(ulng* adr, ulng len) {
 // ---------------- USER SCALE ----------------
 
 //new - free
-void* heap__new(ulng len){
+heap__ref heap__new(ulng len){
 
 	//0 bytes to allocate => silent err
-	if(!len){ return null; }
+	if(!len){
+		heap__ref res = {.r=null, .offset=0};
+		return res;
+	}
 
 	#ifdef MM__PAD_ALLOC_LEN_ULNG
 	//padding to only multiple of ulng
@@ -217,7 +224,8 @@ void* heap__new(ulng len){
 			if(size == len){
 				curFreeSlot_prevRef[0] = curFreeSlot[1];          //disconnect slot from freeLst, <=> prevSlot->nxt = curSlot->nxt
 				curFreeSlot[1]         = (ulng)curPC_freeLstHead; //set freeLstHead in newly allocated block
-				return curFreeSlot+2;                             //direct return adr, no need to set the size (exact match)
+				heap__ref res = {.r=curFreeSlot+2, .offset=0};    //direct return adr, no need to set the size (exact match)
+				return res;
 			}
 
 			//bigger => potential
@@ -252,7 +260,8 @@ void* heap__new(ulng len){
 			bestPtl_inRange_prevRef[0] = bestPtl_inRange[1];      //disconnect slot from freeLst, <=> prevSlot->nxt = bestPtl_inRangeSlot->nxt
 			bestPtl_inRange[0]         = bestPtl_inRange_size;    //set size        in newly allocated block
 			bestPtl_inRange[1]         = (ulng)curPC_freeLstHead; //set freeLstHead in newly allocated block
-			return bestPtl_inRange+2;
+			heap__ref res = {.r=bestPtl_inRange+2, .offset=0};
+			return res;
 		}
 
 		//go to previous PC (neighbor check)
@@ -270,15 +279,16 @@ void* heap__new(ulng len){
 		bestPtl_outRange_prevRef[0] = bestPtl_outRange[1];                //disconnect from freeLst, <=> prevSlot->nxt = bestPtl_outRangeSlot->nxt
 		bestPtl_outRange[0]         = bestPtl_outRange_size;              //set size        in newly allocated block
 		bestPtl_outRange[1]         = (ulng)bestPtl_outRange_freeLstHead; //set freeLstHead in newly allocated block
-		return bestPtl_outRange+2;
+		heap__ref res = {.r=bestPtl_outRange+2, .offset=0};
+		return res;
 	}
 
 	//no even having any out-range potential => allocate new PC
 	return heap__newPC(len);
 }
 
-void heap__free(void* r){
-	ulng* freedSlot  = ((ulng*)r)-2;
+void heap__free(heap__ref h){
+	ulng* freedSlot  = ((ulng*)h.r)-2;
 	ulng* tgtFreeLst = (ulng*)(freedSlot[1]);
 
 
@@ -363,27 +373,27 @@ void heap__free(void* r){
 // ---------------- MEMORY ACCESS ----------------
 
 //unsafe: read
-u8  heap__unsafe_ru8( void* r, ulng offset){ return ((u8*)(  ((ubyt*)r)+offset ))[0]; }
-u16 heap__unsafe_ru16(void* r, ulng offset){ return ((u16*)( ((ubyt*)r)+offset ))[0]; }
-u32 heap__unsafe_ru32(void* r, ulng offset){ return ((u32*)( ((ubyt*)r)+offset ))[0]; }
+u8  heap__unsafe_ru8( heap__ref h){ return ((u8*)(  ((ubyt*)h.r)+ h.offset ))[0]; }
+u16 heap__unsafe_ru16(heap__ref h){ return ((u16*)( ((ubyt*)h.r)+ h.offset ))[0]; }
+u32 heap__unsafe_ru32(heap__ref h){ return ((u32*)( ((ubyt*)h.r)+ h.offset ))[0]; }
 #ifdef ARCH64
-u64 heap__unsafe_ru64(void* r, ulng offset){ return ((u64*)( ((ubyt*)r)+offset ))[0]; }
+u64 heap__unsafe_ru64(heap__ref h){ return ((u64*)( ((ubyt*)h.r)+ h.offset ))[0]; }
 #endif
 
 
 //unsafe: write
-void heap__unsafe_wu8( void* r, ulng offset, u8  e){ ((u8*)(  ((ubyt*)r)+offset ))[0] = e; }
-void heap__unsafe_wu16(void* r, ulng offset, u16 e){ ((u16*)( ((ubyt*)r)+offset ))[0] = e; }
-void heap__unsafe_wu32(void* r, ulng offset, u32 e){ ((u32*)( ((ubyt*)r)+offset ))[0] = e; }
+void heap__unsafe_wu8( heap__ref h, u8  e){ ((u8*)(  ((ubyt*)h.r)+ h.offset ))[0] = e; }
+void heap__unsafe_wu16(heap__ref h, u16 e){ ((u16*)( ((ubyt*)h.r)+ h.offset ))[0] = e; }
+void heap__unsafe_wu32(heap__ref h, u32 e){ ((u32*)( ((ubyt*)h.r)+ h.offset ))[0] = e; }
 #ifdef ARCH64
-void heap__unsafe_wu64(void* r, ulng offset, u64 e){ ((u64*)( ((ubyt*)r)+offset ))[0] = e; }
+void heap__unsafe_wu64(heap__ref h, u64 e){ ((u64*)( ((ubyt*)h.r)+ h.offset ))[0] = e; }
 #endif
 
 
 
 //safe: read
-u8 heap__safe_ru8(void* r, ulng offset){
-	if( offset > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u8), so used literal "1"
+u8 heap__safe_ru8(heap__ref h){
+	if( h.offset > (((ulng*)h.r)-2)[0] ){ //seems a bit stupid to make sizeof(u8), so used literal "1"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -393,11 +403,11 @@ u8 heap__safe_ru8(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU8);
 	}
-	return heap__unsafe_ru8(r, offset);
+	return heap__unsafe_ru8(h);
 }
 
-u16 heap__safe_ru16(void* r, ulng offset){
-	if( offset+2 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
+u16 heap__safe_ru16(heap__ref h){
+	if( h.offset+2 > (((ulng*)h.r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -407,11 +417,11 @@ u16 heap__safe_ru16(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU16);
 	}
-	return heap__unsafe_ru16(r, offset);
+	return heap__unsafe_ru16(h);
 }
 
-u32 heap__safe_ru32(void* r, ulng offset){
-	if( offset+4 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
+u32 heap__safe_ru32(heap__ref h){
+	if( h.offset+4 > (((ulng*)h.r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -421,12 +431,12 @@ u32 heap__safe_ru32(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU32);
 	}
-	return heap__unsafe_ru32(r, offset);
+	return heap__unsafe_ru32(h);
 }
 
 #ifdef ARCH64
-u64 heap__safe_ru64(void* r, ulng offset){
-	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
+u64 heap__safe_ru64(heap__ref h){
+	if( h.offset+8 > (((ulng*)h.r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -436,15 +446,15 @@ u64 heap__safe_ru64(void* r, ulng offset){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_RU64);
 	}
-	return heap__unsafe_ru64(r, offset);
+	return heap__unsafe_ru64(h);
 }
 #endif
 
 
 
 //safe: write
-void heap__safe_wu8(void* r, ulng offset, u8 e){
-	if( offset > (((ulng*)r)-2)[0] ){
+void heap__safe_wu8(heap__ref h, u8 e){
+	if( h.offset > (((ulng*)h.r)-2)[0] ){
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -454,11 +464,11 @@ void heap__safe_wu8(void* r, ulng offset, u8 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU8);
 	}
-	return heap__unsafe_wu8(r, offset, e);
+	return heap__unsafe_wu8(h, e);
 }
 
-void heap__safe_wu16(void* r, ulng offset, u16 e){
-	if( offset+2 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
+void heap__safe_wu16(heap__ref h, u16 e){
+	if( h.offset+2 > (((ulng*)h.r)-2)[0] ){ //seems a bit stupid to make sizeof(u16), so used literal "2"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -468,11 +478,11 @@ void heap__safe_wu16(void* r, ulng offset, u16 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU16);
 	}
-	return heap__unsafe_wu16(r, offset, e);
+	return heap__unsafe_wu16(h, e);
 }
 
-void heap__safe_wu32(void* r, ulng offset, u32 e){
-	if( offset+4 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
+void heap__safe_wu32(heap__ref h, u32 e){
+	if( h.offset+4 > (((ulng*)h.r)-2)[0] ){ //seems a bit stupid to make sizeof(u32), so used literal "4"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -482,12 +492,12 @@ void heap__safe_wu32(void* r, ulng offset, u32 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU32);
 	}
-	return heap__unsafe_wu32(r, offset, e);
+	return heap__unsafe_wu32(h, e);
 }
 
 #ifdef ARCH64
-void heap__safe_wu64(void* r, ulng offset, u64 e){
-	if( offset+8 > (((ulng*)r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
+void heap__safe_wu64(heap__ref h, u64 e){
+	if( h.offset+8 > (((ulng*)h.r)-2)[0] ){ //seems a bit stupid to make sizeof(u64), so used literal "8"
 
 		//optl output
 		#ifdef MM__ILLEGAL_ACCESS_OUTPUT
@@ -497,20 +507,20 @@ void heap__safe_wu64(void* r, ulng offset, u64 e){
 		//spc err
 		syscall_exit(ERR__ILLEGAL_HEAP_WU64);
 	}
-	return heap__unsafe_wu64(r, offset, e);
+	return heap__unsafe_wu64(h, e);
 }
 #endif
 
 
 
 //variable size, unsafe: write
-void heap__unsafe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size){
-	for(ulng i=0; i < size; i++){ heap__unsafe_wu8(dst, dstOffset, heap__unsafe_ru8(src, srcOffset)); }
+void heap__unsafe_w(heap__ref src, heap__ref dst, ulng size){
+	for(ulng i=0; i < size; i++){ heap__unsafe_wu8(dst, heap__unsafe_ru8(src)); }
 }
 
 
 
 //variable size, safe: write
-void heap__safe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size){
-	for(ulng i=0; i < size; i++){ heap__safe_wu8(dst, dstOffset, heap__safe_ru8(src, srcOffset)); }
+void heap__safe_w(heap__ref src, heap__ref dst, ulng size){
+	for(ulng i=0; i < size; i++){ heap__safe_wu8(dst, heap__safe_ru8(src)); }
 }

@@ -344,6 +344,12 @@ extern ulng* heap__latestPC;
 //memory access
 #define MM__ILLEGAL_ACCESS_OUTPUT //comment to disable output msg on illegal access
 
+//heap refs
+typedef struct {
+	void* r;      //must refer to an allocated block ONLY (not just a random ref)
+	ulng  offset;
+} heap__ref;
+
 
 
 
@@ -362,8 +368,8 @@ ulng padP2(ulng n, ulng p2);
 // ---------------- USER SCALE ----------------
 
 //new - free
-void* heap__new(ulng len);
-void  heap__free(void* r);
+heap__ref heap__new(ulng len);
+void      heap__free(heap__ref r);
 
 
 
@@ -373,44 +379,44 @@ void  heap__free(void* r);
 // ---------------- MEMORY ACCESS ----------------
 
 //fixed size, unsafe: read
-u8  heap__unsafe_ru8( void* r, ulng offset);
-u16 heap__unsafe_ru16(void* r, ulng offset);
-u32 heap__unsafe_ru32(void* r, ulng offset);
+u8  heap__unsafe_ru8( heap__ref h);
+u16 heap__unsafe_ru16(heap__ref h);
+u32 heap__unsafe_ru32(heap__ref h);
 #ifdef ARCH64
-u64 heap__unsafe_ru64(void* r, ulng offset);
+u64 heap__unsafe_ru64(heap__ref h);
 #endif
 
 //fixed size, unsafe: write
-void heap__unsafe_wu8( void* r, ulng offset, u8  e);
-void heap__unsafe_wu16(void* r, ulng offset, u16 e);
-void heap__unsafe_wu32(void* r, ulng offset, u32 e);
+void heap__unsafe_wu8( heap__ref h, u8  e);
+void heap__unsafe_wu16(heap__ref h, u16 e);
+void heap__unsafe_wu32(heap__ref h, u32 e);
 #ifdef ARCH64
-void heap__unsafe_wu64(void* r, ulng offset, u64 e);
+void heap__unsafe_wu64(heap__ref h, u64 e);
 #endif
 
 //fixed size, safe: read
-u8  heap__safe_ru8( void* r, ulng offset);
-u16 heap__safe_ru16(void* r, ulng offset);
-u32 heap__safe_ru32(void* r, ulng offset);
+u8  heap__safe_ru8( heap__ref h);
+u16 heap__safe_ru16(heap__ref h);
+u32 heap__safe_ru32(heap__ref h);
 #ifdef ARCH64
-u64 heap__safe_ru64(void* r, ulng offset);
+u64 heap__safe_ru64(heap__ref h);
 #endif
 
 //fixed size, safe: write
-void heap__safe_wu8( void* r, ulng offset, u8  e);
-void heap__safe_wu16(void* r, ulng offset, u16 e);
-void heap__safe_wu32(void* r, ulng offset, u32 e);
+void heap__safe_wu8( heap__ref h, u8  e);
+void heap__safe_wu16(heap__ref h, u16 e);
+void heap__safe_wu32(heap__ref h, u32 e);
 #ifdef ARCH64
-void heap__safe_wu64(void* r, ulng offset, u64 e);
+void heap__safe_wu64(heap__ref h, u64 e);
 #endif
 
 //makes no sens to read on variable size:
 //  How can we know where to put the result if we don't know the size statically (at compile time) ?
 
 //variable size, unsafe: write
-void heap__unsafe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size);
+void heap__unsafe_w(heap__ref src, heap__ref dst, ulng size);
 
 //variable size, safe: write
-void heap__safe_w(void* src, ulng srcOffset, void* dst, ulng dstOffset, ulng size);
+void heap__safe_w(heap__ref src, heap__ref dst, ulng size);
 
 #endif
